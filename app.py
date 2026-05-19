@@ -27,15 +27,13 @@ def index():
     """
     try:
         # Petición GET al backend para obtener todos los usuarios
-        response = requests.get(f'{BACKEND_URL}/api/usuarios')
-        
+        response = requests.get(f'{BACKEND_URL}/api/usuarios', timeout=5)  # Añadido por pruebas
         if response.status_code == 200:
             usuarios = response.json()
             return render_template('index.html', usuarios=usuarios)
         else:
             flash('Error al obtener los usuarios del servidor', 'error')
             return render_template('index.html', usuarios=[])
-            
     except requests.exceptions.RequestException as e:
         print(f'Error de conexión con el backend: {e}')
         flash('No se pudo conectar con el servidor backend', 'error')
@@ -61,26 +59,27 @@ def crear_usuario():
         nombre = request.form.get('nombre')
         email = request.form.get('email')
         edad = request.form.get('edad')
-        
+
         # Validar que los campos requeridos no estén vacíos
         if not nombre or not email:
             flash('El nombre y el email son obligatorios', 'error')
             return redirect(url_for('crear_usuario_form'))
-        
+
         # Preparar datos para enviar al backend
         datos_usuario = {
             'nombre': nombre,
             'email': email,
             'edad': int(edad) if edad else None
         }
-        
+
         # Petición POST al backend para crear el usuario
         response = requests.post(
             f'{BACKEND_URL}/api/usuarios',
             json=datos_usuario,
-            headers={'Content-Type': 'application/json'}
+            headers={'Content-Type': 'application/json'},
+            timeout=5  # Añadido por pruebas
         )
-        
+
         if response.status_code == 201:
             flash('Usuario creado exitosamente', 'success')
             return redirect(url_for('index'))
@@ -88,7 +87,6 @@ def crear_usuario():
             error_data = response.json()
             flash(f'Error al crear usuario: {error_data.get("error", "Error desconocido")}', 'error')
             return redirect(url_for('crear_usuario_form'))
-            
     except requests.exceptions.RequestException as e:
         print(f'Error de conexión con el backend: {e}')
         flash('No se pudo conectar con el servidor backend', 'error')
@@ -105,13 +103,11 @@ def editar_usuario_form(usuario_id):
     """
     try:
         # Obtener los datos del usuario desde el backend
-        response = requests.get(f'{BACKEND_URL}/api/usuarios')
-        
+        response = requests.get(f'{BACKEND_URL}/api/usuarios', timeout=5)  # Añadido por pruebas
         if response.status_code == 200:
             usuarios = response.json()
             # Buscar el usuario por ID
             usuario = next((u for u in usuarios if u['id'] == usuario_id), None)
-            
             if usuario:
                 return render_template('editar_usuario.html', usuario=usuario)
             else:
@@ -120,7 +116,6 @@ def editar_usuario_form(usuario_id):
         else:
             flash('Error al obtener los datos del usuario', 'error')
             return redirect(url_for('index'))
-            
     except requests.exceptions.RequestException as e:
         print(f'Error de conexión con el backend: {e}')
         flash('No se pudo conectar con el servidor backend', 'error')
@@ -138,26 +133,27 @@ def editar_usuario(usuario_id):
         nombre = request.form.get('nombre')
         email = request.form.get('email')
         edad = request.form.get('edad')
-        
+
         # Validar campos requeridos
         if not nombre or not email:
             flash('El nombre y el email son obligatorios', 'error')
             return redirect(url_for('editar_usuario_form', usuario_id=usuario_id))
-        
+
         # Preparar datos para enviar al backend
         datos_usuario = {
             'nombre': nombre,
             'email': email,
             'edad': int(edad) if edad else None
         }
-        
+
         # Petición PUT al backend para actualizar el usuario
         response = requests.put(
             f'{BACKEND_URL}/api/usuarios/{usuario_id}',
             json=datos_usuario,
-            headers={'Content-Type': 'application/json'}
+            headers={'Content-Type': 'application/json'},
+            timeout=5  # Añadido por pruebas
         )
-        
+
         if response.status_code == 200:
             flash('Usuario actualizado exitosamente', 'success')
             return redirect(url_for('index'))
@@ -165,7 +161,6 @@ def editar_usuario(usuario_id):
             error_data = response.json()
             flash(f'Error al actualizar usuario: {error_data.get("error", "Error desconocido")}', 'error')
             return redirect(url_for('editar_usuario_form', usuario_id=usuario_id))
-            
     except requests.exceptions.RequestException as e:
         print(f'Error de conexión con el backend: {e}')
         flash('No se pudo conectar con el servidor backend', 'error')
@@ -182,18 +177,18 @@ def eliminar_usuario(usuario_id):
     """
     try:
         # Petición DELETE al backend para eliminar el usuario
-        response = requests.delete(f'{BACKEND_URL}/api/usuarios/{usuario_id}')
-        
+        response = requests.delete(
+            f'{BACKEND_URL}/api/usuarios/{usuario_id}',
+            timeout=5  # Añadido por pruebas
+        )
         if response.status_code == 200:
             flash('Usuario eliminado exitosamente', 'success')
         else:
             error_data = response.json()
             flash(f'Error al eliminar usuario: {error_data.get("error", "Error desconocido")}', 'error')
-            
     except requests.exceptions.RequestException as e:
         print(f'Error de conexión con el backend: {e}')
         flash('No se pudo conectar con el servidor backend', 'error')
-    
     return redirect(url_for('index'))
 
 # Manejo de errores 404
@@ -217,9 +212,9 @@ if __name__ == '__main__':
     # Obtener el puerto desde variables de entorno o usar 5000 por defecto
     port = int(os.getenv('PORT', 5000))
     debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
-    
+
     print(f'Iniciando servidor Flask en el puerto {port}')
     print(f'URL del backend: {BACKEND_URL}')
-    
+
     # Iniciar el servidor Flask
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
